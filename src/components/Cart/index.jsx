@@ -1,24 +1,54 @@
 import React from "react";
-import { v4 as uuid } from "uuid";
+import RootContext from "../../context";
+import axios from "axios";
+
+import InfoMessages from "../InfoMessages";
 import styles from "./Cart.module.scss";
 
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 const Cart = ({ handleClose, onRemove, items = [] }) => {
+  const { cartItems, setCartItems } = React.useContext(RootContext);
+  const [isOrderCompleted, setIsOrderCompleted] = React.useState(false);
+  const [orderId, setOrderId] = React.useState(null);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const onClickOrder = async () => {
+    try {
+      setIsLoading(true);
+      const { data } = await axios.post("https://6423f20f47401740432f319b.mockapi.io/orders", {
+        items: cartItems,
+      });
+      setOrderId(data.id);
+      setIsOrderCompleted(true);
+      setCartItems([]);
+      for (let i = 0; i < cartItems.length; i++) {
+        const item = cartItems[i];
+        await axios.delete("https://6421b76086992901b2ba8342.mockapi.io/cart/" + item.id);
+        await delay(1000);
+      }
+    } catch (error) {
+      alert("Не вдалося створити замовлення :(");
+    }
+    setIsLoading(false);
+  };
+
   return (
     <div className='overlay'>
       <div className={styles.cart}>
         <h2 className='d-flex justify-between mb-30'>
-          Корзина{" "}
+          Корзина
           <img className='cu-p' src='/img/btn-remove.svg' alt='Close' onClick={handleClose} />
         </h2>
 
         {items.length > 0 ? (
-          <>
+          <div className='d-flex flex-column flex'>
             <div className={styles.items}>
               {items.map(obj => (
                 <div
-                  key={uuid()}
+                  key={obj.id}
                   className={styles.cartItem}
-                  style={{ display: "flex", "aligtn-items": "center", "margin-bottom": "20px" }}>
+                  style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
                   <div
                     style={{ backgroundImage: `url(${obj.imgUrl})` }}
                     className={styles.cartItemImg}></div>
@@ -49,27 +79,21 @@ const Cart = ({ handleClose, onRemove, items = [] }) => {
                   <b>1500 грн. </b>
                 </li>
               </ul>
-              <button className={styles.greenButton}>
+              <button disabled={isLoading} onClick={onClickOrder} className={styles.greenButton}>
                 Підтвердити замовлення <img src='/img/arrow.svg' alt='Arrow' />
               </button>
             </div>
-          </>
-        ) : (
-          <div className='cartEmpty d-flex align-center justify-center flex-column flex'>
-            <img
-              className='mb-20'
-              width='120px'
-              height='120px'
-              src='/img/empty-cart.jpg'
-              alt='empty cart'
-            />
-            <h2>Корзина пуста</h2>
-            <p className='opacity-6'>Додайте товар у корзину щоб зробити замовлення.</p>
-            <button className='greenButton' onClick={handleClose}>
-              <img src='/img/arrow.svg' alt='Arrow sign' />
-              Повернутись назад
-            </button>
           </div>
+        ) : (
+          <InfoMessages
+            title={isOrderCompleted ? "Замовлення оформлене" : "Корзина пуста"}
+            image={isOrderCompleted ? "/img/complete-order.jpg" : "/img/empty-cart.jpg"}
+            description={
+              isOrderCompleted
+                ? `Ваше замовлення номер ${orderId} найближчим часом буде передане службі доставки`
+                : "Додайте товар до корзини аби сформувати замовлення."
+            }
+          />
         )}
       </div>
     </div>

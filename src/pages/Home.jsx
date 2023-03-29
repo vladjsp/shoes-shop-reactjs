@@ -1,14 +1,32 @@
 import React from "react";
+
 import Card from "../components/Card";
 
 const Home = ({
   items,
   searchValue,
   setSearchValue,
+  onChangeSearchInput,
   onAddToCart,
   onAddToFavorite,
-  onChangeSearchInput,
+  isLoading,
 }) => {
+  const renderItems = () => {
+    const filteredItems = items.filter(item =>
+      item.title.toLowerCase().includes(searchValue.toLowerCase())
+    );
+
+    return (isLoading ? [...Array(8)] : filteredItems).map((item, index) => (
+      <Card
+        key={index}
+        onFavorite={obj => onAddToFavorite(obj)}
+        onPlus={obj => onAddToCart(obj)}
+        loading={isLoading}
+        {...item}
+      />
+    ));
+  };
+
   return (
     <div className='content p-20'>
       <div className='d-flex align-center justify-between mb-40'>
@@ -28,22 +46,7 @@ const Home = ({
           <input onChange={onChangeSearchInput} value={searchValue} placeholder='Пошук...' />
         </div>
       </div>
-      <div className='cardContainer'>
-        {items
-          .filter(sneakersObj =>
-            sneakersObj.title.toLowerCase().includes(searchValue.toLowerCase())
-          )
-          .map(sneakersObj => (
-            <Card
-              key={sneakersObj.id}
-              title={sneakersObj.title}
-              price={sneakersObj.price}
-              imgUrl={sneakersObj.imgUrl}
-              onFavorite={obj => onAddToFavorite(obj)}
-              onPlus={obj => onAddToCart(obj)} //тут можна передати і сам об'єкт sneakersObj, а не витягувать з компоненту
-            />
-          ))}
-      </div>
+      <div className='cardContainer'>{renderItems()}</div>
     </div>
   );
 };

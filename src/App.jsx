@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
-//import { v4 as uuid } from "uuid";
+import React, { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
+import RootContext from "./context";
+import axios from "axios";
+
 import Header from "./components/Header";
 import Cart from "./components/Cart";
-import axios from "axios";
 import Home from "./pages/Home";
 import Favorites from "./pages/Favorites";
 
@@ -13,63 +14,59 @@ function App() {
   const [searchValue, setSearchValue] = useState("");
   const [cartOpened, setCartOpened] = useState(false);
   const [favorites, setFavorites] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const BASE_API_URL = "https://6421b76086992901b2ba8342.mockapi.io/";
+  const FAV_BASE_API_URL = "https://6423f20f47401740432f319b.mockapi.io/";
 
   useEffect(() => {
-    //get shop goods list from backend with fetch
-    fetch("https://6421b76086992901b2ba8342.mockapi.io/items")
-      .then(response => {
-        return response.json();
-      })
-      .then(json => {
-        //if data from backend goes without id's
-        // const jsonWithId = json.map(item => ({
-        //   ...item,
-        //   id: uuid(),
-        // }));
-        setItems(json);
-      })
-      .catch(err => {
-        console.log(err);
-      });
-    //get cart from backend with axios
-    axios.get("https://6421b76086992901b2ba8342.mockapi.io/cart").then(res => {
-      setCartItems(res.data);
-    });
-    //get favorites from backend with axios
-    // axios.get("https://6421b76086992901b2ba8342.mockapi.io/favorites").then(res => {
-    //   setFavorites(res.data);
-    // });
+    async function fetchData() {
+      //get cart from backend
+      const cartResponse = await axios.get(`${BASE_API_URL}cart`);
+      //get favorites from backend
+      const favoritesResponse = await axios.get(`${FAV_BASE_API_URL}favorites`);
+      //get shop goods list from backend
+      const itemsResponse = await axios.get(`${BASE_API_URL}items`);
+
+      setIsLoading(false);
+      setCartItems(cartResponse.data);
+      setFavorites(favoritesResponse.data);
+      setItems(itemsResponse.data);
+    }
+
+    fetchData();
   }, []);
 
   const onAddToCart = obj => {
-    axios.post("https://6421b76086992901b2ba8342.mockapi.io/cart", obj);
-    setCartItems(prev => [...prev, obj]); //setCartItems([...cartItems, obj]);
-    //console.log(cartItems);
+    try {
+      if (cartItems.find(item => Number(item.id) === Number(obj.id))) {
+        axios.delete(`${BASE_API_URL}cart/${obj.id}`);
+        setCartItems(prev => prev.filter(item => Number(item.id) !== Number(obj.id)));
+      } else {
+        axios.post(`${BASE_API_URL}cart`, obj);
+        setCartItems(prev => [...prev, obj]);
+      }
+    } catch (error) {}
   };
 
   const onCartItemRemove = id => {
     //remove item from cart on backend
-    axios.delete(`https://6421b76086992901b2ba8342.mockapi.io/cart/${id}`);
+    axios.delete(`${BASE_API_URL}cart/${id}`);
     //remove item from cart on frontend
-    setCartItems(prev => prev.filter(item => item.id !== id)); // another way setCartItems([...cartItems, obj]);
+    setCartItems(prev => prev.filter(item => Number(item.id) !== Number(id)));
   };
 
   const onChangeSearchInput = event => {
-    //console.log(event.target.value);
     setSearchValue(event.target.value);
   };
 
-  // here i have reached project/resource limit for a free plan on mockapi so favorites feature works without backend
   const onAddToFavorite = async obj => {
     try {
-      if (favorites.find(favObj => favObj.id === obj.id)) {
-        //axios.delete(`https://6421b76086992901b2ba8342.mockapi.io/favorites/${obj.id}`);
-        setFavorites(prev => prev.filter(item => item.id !== obj.id));
+      if (favorites.find(favObj => Number(favObj.id) === Number(obj.id))) {
+        axios.delete(`${FAV_BASE_API_URL}favorites/${obj.id}`);
+        setFavorites(prev => prev.filter(item => Number(item.id) !== Number(obj.id)));
       } else {
-        const { data } = await axios.post(
-          "https://6421b76086992901b2ba8342.mockapi.io/favorites",
-          obj
-        );
+        const { data } = await axios.post(`${FAV_BASE_API_URL}favorites`, obj);
         setFavorites(prev => [...prev, data]);
       }
     } catch (error) {
@@ -77,34 +74,49 @@ function App() {
     }
   };
 
+  const isItemInCart = id => {
+    return cartItems.some(obj => Number(obj.id) === Number(id));
+  };
+
   return (
-    <div className='wrapper clear'>
-      {cartOpened && (
-        <Cart
-          items={cartItems}
-          handleClose={() => setCartOpened(false)}
-          onRemove={onCartItemRemove}
-        />
-      )}
-      <Header handleCartOpen={() => setCartOpened(true)} />
-      <Routes>
-        <Route
-          path='/'
-          element={
-            <Home
-              items={items}
-              searchValue={searchValue}
-              setSearchValue={setSearchValue}
-              onChangeSearchInput={onChangeSearchInput}
-              onAddToFavorite={onAddToFavorite}
-              onAddToCart={onAddToCart}
-            />
-          }></Route>
-        <Route
-          path='favorites'
-          element={<Favorites items={favorites} onFavorite={onAddToFavorite} />}></Route>
-      </Routes>
-    </div>
+    <RootContext.Provider
+      value={{
+        items,
+        cartItems,
+        favorites,
+        isItemInCart,
+        onAddToFavorite,
+        setCartOpened,
+        setCartItems,
+      }}>
+      <div className='wrapper clear'>
+        {cartOpened && (
+          <Cart
+            items={cartItems}
+            handleClose={() => setCartOpened(false)}
+            onRemove={onCartItemRemove}
+          />
+        )}
+        <Header handleCartOpen={() => setCartOpened(true)} />
+        <Routes>
+          <Route
+            path='/'
+            element={
+              <Home
+                items={items}
+                cartItems={cartItems}
+                searchValue={searchValue}
+                setSearchValue={setSearchValue}
+                onChangeSearchInput={onChangeSearchInput}
+                onAddToFavorite={onAddToFavorite}
+                onAddToCart={onAddToCart}
+                isLoading={isLoading}
+              />
+            }></Route>
+          <Route path='/favorites' element={<Favorites />}></Route>
+        </Routes>
+      </div>
+    </RootContext.Provider>
   );
 }
 
