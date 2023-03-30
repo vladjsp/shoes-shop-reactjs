@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "homepage": "https://vladjsp.github.io/shoes-shop-reactjs/",
+    "homepage": "https://vladjsp.github.io/shoes-shop-reactjs",
     "axios": "^1.3.4",
     "macro-css": "^1.0.5",
     "react": "^18.2.0",

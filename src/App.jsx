@@ -113,7 +113,7 @@ function App() {
         <Header handleCartOpen={() => setCartOpened(true)} />
         <Routes>
           <Route
-            path=''
+            path='/'
             element={
               <Home
                 items={items}
