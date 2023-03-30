@@ -16,13 +16,15 @@ const Card = ({
 }) => {
   const { isItemInCart } = React.useContext(RootContext);
   const [isFavorite, setIsFavorite] = useState(favorited);
+  //solve mockapi.io behavior
+  const itemsObj = { id, trueId: id, title, imgUrl, price };
 
   const onClickPlus = () => {
-    onPlus({ id, title, imgUrl, price });
+    onPlus(itemsObj);
   };
 
   const onClickFavorite = () => {
-    onFavorite({ id, title, imgUrl, price });
+    onFavorite(itemsObj);
     setIsFavorite(!isFavorite);
   };
 
@@ -44,9 +46,11 @@ const Card = ({
         </ContentLoader>
       ) : (
         <>
-          <div className={styles.favorite} onClick={onClickFavorite}>
-            <img src={isFavorite ? "/img/liked.svg" : "/img/unliked.svg"} alt='Unliked' />
-          </div>
+          {onFavorite && (
+            <div className={styles.favorite} onClick={onClickFavorite}>
+              <img src={isFavorite ? "img/liked.svg" : "img/unliked.svg"} alt='Unliked' />
+            </div>
+          )}
           <img width={133} height={112} src={imgUrl} alt='Sneakers' />
           <h5>{title}</h5>
           <div className='d-flex justify-between align-center'>
@@ -54,12 +58,14 @@ const Card = ({
               <span>Ціна:</span>
               <b>{price} грн.</b>
             </div>
-            <img
-              className={styles.plus}
-              src={isItemInCart(id) ? "/img/btn-checked.svg" : "/img/plus.svg"}
-              alt='Plus'
-              onClick={onClickPlus}
-            />
+            {onPlus && (
+              <img
+                className={styles.plus}
+                src={isItemInCart(id) ? "img/btn-checked.svg" : "img/plus.svg"}
+                alt='Plus'
+                onClick={onClickPlus}
+              />
+            )}
           </div>
         </>
       )}

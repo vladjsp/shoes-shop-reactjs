@@ -1,14 +1,14 @@
 import React from "react";
-import RootContext from "../../context";
 import axios from "axios";
-
 import InfoMessages from "../InfoMessages";
+import { useCart } from "../../hooks/useCart";
+
 import styles from "./Cart.module.scss";
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const Cart = ({ handleClose, onRemove, items = [] }) => {
-  const { cartItems, setCartItems } = React.useContext(RootContext);
+  const { cartItems, setCartItems, totalPrice } = useCart();
   const [isOrderCompleted, setIsOrderCompleted] = React.useState(false);
   const [orderId, setOrderId] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -38,7 +38,7 @@ const Cart = ({ handleClose, onRemove, items = [] }) => {
       <div className={styles.cart}>
         <h2 className='d-flex justify-between mb-30'>
           Корзина
-          <img className='cu-p' src='/img/btn-remove.svg' alt='Close' onClick={handleClose} />
+          <img className='cu-p' src='img/btn-remove.svg' alt='Close' onClick={handleClose} />
         </h2>
 
         {items.length > 0 ? (
@@ -60,7 +60,7 @@ const Cart = ({ handleClose, onRemove, items = [] }) => {
                   <img
                     onClick={() => onRemove(obj.id)}
                     className={styles.removeBtn}
-                    src='/img/btn-remove.svg'
+                    src='img/btn-remove.svg'
                     alt='Remove'
                   />
                 </div>
@@ -71,23 +71,23 @@ const Cart = ({ handleClose, onRemove, items = [] }) => {
                 <li>
                   <span>Всього:</span>
                   <div></div>
-                  <b>8 997 грн. </b>
+                  <b>{totalPrice} грн. </b>
                 </li>
                 <li>
                   <span>ПДВ:</span>
                   <div></div>
-                  <b>1500 грн. </b>
+                  <b>{Math.floor(totalPrice / 6)} грн. </b>
                 </li>
               </ul>
               <button disabled={isLoading} onClick={onClickOrder} className={styles.greenButton}>
-                Підтвердити замовлення <img src='/img/arrow.svg' alt='Arrow' />
+                Підтвердити замовлення <img src='img/arrow.svg' alt='Arrow' />
               </button>
             </div>
           </div>
         ) : (
           <InfoMessages
             title={isOrderCompleted ? "Замовлення оформлене" : "Корзина пуста"}
-            image={isOrderCompleted ? "/img/complete-order.jpg" : "/img/empty-cart.jpg"}
+            image={isOrderCompleted ? "img/complete-order.jpg" : "img/empty-cart.jpg"}
             description={
               isOrderCompleted
                 ? `Ваше замовлення номер ${orderId} найближчим часом буде передане службі доставки`

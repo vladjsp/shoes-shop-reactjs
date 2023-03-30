@@ -7,53 +7,64 @@ import Header from "./components/Header";
 import Cart from "./components/Cart";
 import Home from "./pages/Home";
 import Favorites from "./pages/Favorites";
+import Orders from "./pages/Orders";
 
 function App() {
   const [items, setItems] = useState([]);
   const [cartItems, setCartItems] = useState([]);
+  const [favorites, setFavorites] = useState([]);
   const [searchValue, setSearchValue] = useState("");
   const [cartOpened, setCartOpened] = useState(false);
-  const [favorites, setFavorites] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const BASE_API_URL = "https://6421b76086992901b2ba8342.mockapi.io/";
   const FAV_BASE_API_URL = "https://6423f20f47401740432f319b.mockapi.io/";
 
   useEffect(() => {
     async function fetchData() {
-      //get cart from backend
-      const cartResponse = await axios.get(`${BASE_API_URL}cart`);
-      //get favorites from backend
-      const favoritesResponse = await axios.get(`${FAV_BASE_API_URL}favorites`);
-      //get shop goods list from backend
-      const itemsResponse = await axios.get(`${BASE_API_URL}items`);
+      try {
+        //mb better to use const [first, second, third] = Promise.all([firstRequest, secondRequest, thirdRequest])
+        const cartResponse = await axios.get(`${BASE_API_URL}cart`);
+        const favoritesResponse = await axios.get(`${FAV_BASE_API_URL}favorites`);
+        const itemsResponse = await axios.get(`${BASE_API_URL}items`);
 
-      setIsLoading(false);
-      setCartItems(cartResponse.data);
-      setFavorites(favoritesResponse.data);
-      setItems(itemsResponse.data);
+        setIsLoading(false);
+        setCartItems(cartResponse.data);
+        setFavorites(favoritesResponse.data);
+        setItems(itemsResponse.data);
+      } catch (error) {
+        alert("Виникла непередбачувана помилка.");
+        console.error(error);
+      }
     }
 
     fetchData();
   }, []);
 
-  const onAddToCart = obj => {
+  const onAddToCart = async obj => {
     try {
-      if (cartItems.find(item => Number(item.id) === Number(obj.id))) {
-        axios.delete(`${BASE_API_URL}cart/${obj.id}`);
-        setCartItems(prev => prev.filter(item => Number(item.id) !== Number(obj.id)));
+      const findItem = cartItems.find(item => Number(item.trueId) === Number(obj.id));
+      if (findItem) {
+        setCartItems(prev => prev.filter(item => Number(item.trueId) !== Number(obj.id)));
+        await axios.delete(`${BASE_API_URL}cart/${findItem.id}`);
       } else {
-        axios.post(`${BASE_API_URL}cart`, obj);
-        setCartItems(prev => [...prev, obj]);
+        const { data } = await axios.post(`${BASE_API_URL}cart`, obj);
+        setCartItems(prev => [...prev, data]);
       }
-    } catch (error) {}
+    } catch (error) {
+      alert("Помилка при додаванні в корзину.");
+      console.error(error);
+    }
   };
 
-  const onCartItemRemove = id => {
-    //remove item from cart on backend
-    axios.delete(`${BASE_API_URL}cart/${id}`);
-    //remove item from cart on frontend
-    setCartItems(prev => prev.filter(item => Number(item.id) !== Number(id)));
+  const onCartItemRemove = async id => {
+    try {
+      await axios.delete(`${BASE_API_URL}cart/${id}`);
+      setCartItems(prev => prev.filter(item => Number(item.id) !== Number(id)));
+    } catch (error) {
+      alert("Помилка при видаленні товару з корзини.");
+      console.error(error);
+    }
   };
 
   const onChangeSearchInput = event => {
@@ -70,12 +81,13 @@ function App() {
         setFavorites(prev => [...prev, data]);
       }
     } catch (error) {
-      alert("Щось пішло не так. Спробуйте пізніше.");
+      alert("Невдалося додати до обраного ;(");
+      console.error(error);
     }
   };
 
   const isItemInCart = id => {
-    return cartItems.some(obj => Number(obj.id) === Number(id));
+    return cartItems.some(obj => Number(obj.trueId) === Number(id));
   };
 
   return (
@@ -86,6 +98,7 @@ function App() {
         favorites,
         isItemInCart,
         onAddToFavorite,
+        onAddToCart,
         setCartOpened,
         setCartItems,
       }}>
@@ -100,7 +113,7 @@ function App() {
         <Header handleCartOpen={() => setCartOpened(true)} />
         <Routes>
           <Route
-            path='/'
+            path=''
             element={
               <Home
                 items={items}
@@ -113,7 +126,8 @@ function App() {
                 isLoading={isLoading}
               />
             }></Route>
-          <Route path='/favorites' element={<Favorites />}></Route>
+          <Route path='favorites' element={<Favorites />}></Route>
+          <Route path='orders' element={<Orders />}></Route>
         </Routes>
       </div>
     </RootContext.Provider>
